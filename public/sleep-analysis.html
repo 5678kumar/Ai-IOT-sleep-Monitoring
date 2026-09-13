@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Sleep Analysis - AI Sleep Monitor</title>
+
+    <!-- Existing CSS -->
+    <link rel="stylesheet" href="./css/style.css">
+
+</head>
+
+
+<body>
+
+    <!-- =====================================================
+         MAIN CONTAINER
+    ====================================================== -->
+
+    <div class="dashboard-container">
+
+
+        <!-- =================================================
+             SIDEBAR
+        ================================================== -->
+
+        <aside class="sidebar">
+
+            <div class="sidebar-header">
+
+                <h2>
+                    🤖 AI Sleep
+                </h2>
+
+                <p>
+                    Quality Monitor
+                </p>
+
+            </div>
+
+
+            <nav>
+
+                <ul class="sidebar-menu">
+
+                    <!-- Dashboard -->
+
+                    <li>
+
+                        <a href="dashboard.html">
+                            🏠 Dashboard
+                        </a>
+
+                    </li>
+
+
+                    <!-- Sleep Analysis -->
+
+                    <li>
+
+                        <a href="sleep-analysis.html"
+                           class="active">
+
+                            😴 Sleep Analysis
+
+                        </a>
+
+                    </li>
+
+
+                    <!-- History -->
+
+                    <li>
+
+                        <a href="history.html">
+
+                            📊 History
+
+                        </a>
+
+                    </li>
+
+
+                    <!-- Reports -->
+
+                    <li>
+
+                        <a href="reports.html">
+
+                            📄 Reports
+
+                        </a>
+
+                    </li>
+
+
+                    <!-- Profile -->
+
+                    <li>
+
+                        <a href="profile.html">
+
+                            👤 Profile
+
+                        </a>
+
+                    </li>
+
+                </ul>
+
+            </nav>
+
+
+            <!-- Logout -->
+
+            <button id="logoutBtn">
+
+                🚪 Logout
+
+            </button>
+
+        </aside>
+
+
+
+        <!-- =================================================
+             MAIN CONTENT
+        ================================================== -->
+
+        <main class="main-content">
+
+
+            <!-- =================================================
+                 HEADER
+            ================================================== -->
+
+            <header class="dashboard-header">
+
+                <h1>
+                    😴 Sleep Analysis
+                </h1>
+
+                <p>
+                    AI-based analysis of your latest sleep data.
+                </p>
+
+            </header>
+
+
+
+            <!-- =================================================
+                 LATEST SLEEP SUMMARY
+            ================================================== -->
+
+            <section class="sensor-grid">
+
+
+                <!-- HEART RATE -->
+
+                <div class="sensor-card">
+
+                    <h3>
+                        ❤️ Heart Rate
+                    </h3>
+
+                    <div class="sensor-value">
+
+                        <span id="heartRate">
+                            --
+                        </span>
+
+                        <span class="sensor-unit">
+                            BPM
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- SpO2 -->
+
+                <div class="sensor-card">
+
+                    <h3>
+                        🫁 SpO₂
+                    </h3>
+
+                    <div class="sensor-value">
+
+                        <span id="spo2">
+                            --
+                        </span>
+
+                        <span class="sensor-unit">
+                            %
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- TEMPERATURE -->
+
+                <div class="sensor-card">
+
+                    <h3>
+                        🌡️ Temperature
+                    </h3>
+
+                    <div class="sensor-value">
+
+                        <span id="temperature">
+                            --
+                        </span>
+
+                        <span class="sensor-unit">
+                            °C
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- HUMIDITY -->
+
+                <div class="sensor-card">
+
+                    <h3>
+                        💧 Humidity
+                    </h3>
+
+                    <div class="sensor-value">
+
+                        <span id="humidity">
+                            --
+                        </span>
+
+                        <span class="sensor-unit">
+                            %
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- MOVEMENT -->
+
+                <div class="sensor-card">
+
+                    <h3>
+                        🛌 Movement
+                    </h3>
+
+                    <div class="sensor-value">
+
+                        <span id="movement">
+                            --
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- NOISE -->
+
+                <div class="sensor-card">
+
+                    <h3>
+                        🔊 Noise
+                    </h3>
+
+                    <div class="sensor-value">
+
+                        <span id="noise">
+                            --
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- SLEEP DURATION -->
+
+                <div class="sensor-card">
+
+                    <h3>
+                        😴 Sleep Duration
+                    </h3>
+
+                    <div class="sensor-value">
+
+                        <span id="sleepDuration">
+                            --
+                        </span>
+
+                        <span class="sensor-unit">
+                            Hours
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- =================================================
+                     AI SLEEP QUALITY
+                ================================================== -->
+
+                <div class="sensor-card quality-card">
+
+                    <h3>
+                        🤖 AI Sleep Quality
+                    </h3>
+
+
+                    <div class="quality">
+
+                        <span id="sleepQuality">
+                            Analyzing...
+                        </span>
+
+                    </div>
+
+
+                    <small id="predictionStatus">
+
+                        AI prediction in progress...
+
+                    </small>
+
+
+                    <div class="confidence">
+
+                        <strong>
+                            AI Confidence:
+                        </strong>
+
+                        <span id="confidence">
+                            --
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 AI ANALYSIS
+            ================================================== -->
+
+            <section class="analysis">
+
+
+                <!-- AI ANALYSIS BOX -->
+
+                <div class="analysis-box">
+
+                    <h2>
+                        🤖 AI Sleep Analysis
+                    </h2>
+
+
+                    <p id="analysisText">
+
+                        AI is analyzing the latest sleep data...
+
+                    </p>
+
+                </div>
+
+
+
+                <!-- RECOMMENDATIONS -->
+
+                <div class="analysis-box">
+
+                    <h2>
+                        💡 Recommendations
+                    </h2>
+
+
+                    <ul id="recommendations">
+
+                        <li>
+                            Waiting for AI analysis...
+                        </li>
+
+                    </ul>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 DATA INFORMATION
+            ================================================== -->
+
+            <section class="analysis">
+
+
+                <div class="analysis-box">
+
+                    <h2>
+                        📡 Sensor Information
+                    </h2>
+
+
+                    <p>
+
+                        The analysis is generated using the latest
+                        sensor record received from the ESP32.
+
+                    </p>
+
+
+                    <br>
+
+
+                    <p>
+
+                        Data sources include heart rate, SpO₂,
+                        movement, temperature, humidity, noise,
+                        and sleep duration.
+
+                    </p>
+
+                </div>
+
+
+                <div class="analysis-box">
+
+                    <h2>
+                        🧠 AI Model
+                    </h2>
+
+
+                    <p>
+
+                        The system uses a trained Machine Learning
+                        model to classify the current sleep quality.
+
+                    </p>
+
+
+                    <br>
+
+
+                    <p>
+
+                        The displayed confidence represents the
+                        model's prediction probability and is not
+                        a medical diagnosis.
+
+                    </p>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 FOOTER
+            ================================================== -->
+
+            <footer class="footer">
+
+                <p>
+                    AI and IoT-Based Sleep Quality Monitoring System
+                </p>
+
+            </footer>
+
+
+        </main>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         SLEEP ANALYSIS JAVASCRIPT
+    ====================================================== -->
+
+    <script
+        type="module"
+        src="./js/sleep-analysis.js">
+    </script>
+
+
+</body>
+
+</html>

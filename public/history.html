@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Sleep History - AI Sleep Monitor</title>
+
+    <link rel="stylesheet" href="./css/style.css">
+
+</head>
+
+
+<body>
+
+    <div class="dashboard-container">
+
+
+        <!-- =================================================
+             SIDEBAR
+        ================================================== -->
+
+        <aside class="sidebar">
+
+            <div class="sidebar-header">
+
+                <h2>🤖 AI Sleep</h2>
+
+                <p>Quality Monitor</p>
+
+            </div>
+
+
+            <nav>
+
+                <ul class="sidebar-menu">
+
+                    <li>
+                        <a href="dashboard.html">
+                            🏠 Dashboard
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="sleep-analysis.html">
+                            😴 Sleep Analysis
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="history.html" class="active">
+                            📊 History
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="reports.html">
+                            📄 Reports
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="profile.html">
+                            👤 Profile
+                        </a>
+                    </li>
+
+                </ul>
+
+            </nav>
+
+
+            <button id="logoutBtn">
+                🚪 Logout
+            </button>
+
+        </aside>
+
+
+
+        <!-- =================================================
+             MAIN CONTENT
+        ================================================== -->
+
+        <main class="main-content">
+
+
+            <header class="dashboard-header">
+
+                <h1>
+                    📊 Sleep History
+                </h1>
+
+                <p>
+                    View previously recorded sleep sensor data
+                    and AI predictions.
+                </p>
+
+            </header>
+
+
+
+            <!-- =================================================
+                 HISTORY TABLE
+            ================================================== -->
+
+            <section class="analysis-box">
+
+                <h2>
+                    📋 Sleep Records
+                </h2>
+
+
+                <div style="overflow-x:auto; margin-top:20px;">
+
+                    <table class="data-table">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>Date & Time</th>
+
+                                <th>Heart Rate</th>
+
+                                <th>SpO₂</th>
+
+                                <th>Temperature</th>
+
+                                <th>Humidity</th>
+
+                                <th>Movement</th>
+
+                                <th>Noise</th>
+
+                                <th>Sleep Duration</th>
+
+                                <th>AI Quality</th>
+
+                                <th>Confidence</th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody id="historyTableBody">
+
+                            <tr>
+
+                                <td colspan="10"
+                                    style="text-align:center;">
+
+                                    Loading sleep records...
+
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 INFORMATION
+            ================================================== -->
+
+            <section class="analysis"
+                     style="margin-top:20px;">
+
+                <div class="analysis-box">
+
+                    <h2>
+                        📡 Data Source
+                    </h2>
+
+                    <p>
+                        These records are collected from the
+                        ESP32-based sleep monitoring system and
+                        stored in Firebase Realtime Database.
+                    </p>
+
+                </div>
+
+
+                <div class="analysis-box">
+
+                    <h2>
+                        🤖 AI Prediction
+                    </h2>
+
+                    <p>
+                        Sleep quality is predicted using the
+                        trained machine learning model connected
+                        through the Flask API.
+                    </p>
+
+                </div>
+
+            </section>
+
+
+
+            <footer class="footer">
+
+                <p>
+                    AI and IoT-Based Sleep Quality Monitoring System
+                </p>
+
+            </footer>
+
+
+        </main>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         HISTORY JAVASCRIPT
+    ====================================================== -->
+
+    <script
+        type="module"
+        src="./js/history.js">
+    </script>
+
+</body>
+
+</html>

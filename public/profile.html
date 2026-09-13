@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Profile - AI Sleep Monitor</title>
+
+    <link rel="stylesheet"
+          href="./css/style.css">
+
+</head>
+
+
+<body>
+
+    <div class="dashboard-container">
+
+
+        <!-- =====================================================
+             SIDEBAR
+        ====================================================== -->
+
+        <aside class="sidebar">
+
+            <div class="sidebar-header">
+
+                <h2>🤖 AI Sleep</h2>
+
+                <p>Quality Monitor</p>
+
+            </div>
+
+
+            <nav>
+
+                <ul class="sidebar-menu">
+
+                    <li>
+
+                        <a href="dashboard.html">
+
+                            🏠 Dashboard
+
+                        </a>
+
+                    </li>
+
+
+                    <li>
+
+                        <a href="sleep-analysis.html">
+
+                            😴 Sleep Analysis
+
+                        </a>
+
+                    </li>
+
+
+                    <li>
+
+                        <a href="history.html">
+
+                            📊 History
+
+                        </a>
+
+                    </li>
+
+
+                    <li>
+
+                        <a href="reports.html">
+
+                            📄 Reports
+
+                        </a>
+
+                    </li>
+
+
+                    <li>
+
+                        <a href="profile.html"
+                           class="active">
+
+                            👤 Profile
+
+                        </a>
+
+                    </li>
+
+                </ul>
+
+            </nav>
+
+
+            <button id="logoutBtn">
+
+                🚪 Logout
+
+            </button>
+
+        </aside>
+
+
+
+        <!-- =====================================================
+             MAIN CONTENT
+        ====================================================== -->
+
+        <main class="main-content">
+
+
+            <!-- HEADER -->
+
+            <header class="dashboard-header">
+
+                <h1>
+                    👤 My Profile
+                </h1>
+
+                <p>
+                    View your AI Sleep Monitor account information.
+                </p>
+
+            </header>
+
+
+
+            <!-- =====================================================
+                 PROFILE CARD
+            ====================================================== -->
+
+            <section class="analysis-box">
+
+
+                <div style="
+                    text-align:center;
+                    margin-bottom:30px;
+                ">
+
+                    <div style="
+                        width:100px;
+                        height:100px;
+                        border-radius:50%;
+                        margin:0 auto 15px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        font-size:45px;
+                        background:#f1f5f9;
+                    ">
+
+                        👤
+
+                    </div>
+
+
+                    <h2 id="profileEmail">
+
+                        Loading...
+
+                    </h2>
+
+
+                    <p id="accountStatus">
+
+                        Checking account...
+
+                    </p>
+
+                </div>
+
+
+
+                <!-- =================================================
+                     ACCOUNT INFORMATION
+                ================================================== -->
+
+                <div class="sensor-grid">
+
+
+                    <!-- EMAIL -->
+
+                    <div class="sensor-card">
+
+                        <h3>
+                            📧 Email
+                        </h3>
+
+                        <div style="
+                            margin-top:10px;
+                            word-break:break-word;
+                        ">
+
+                            <span id="email">
+                                --
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- USER ID -->
+
+                    <div class="sensor-card">
+
+                        <h3>
+                            🆔 User ID
+                        </h3>
+
+                        <div style="
+                            margin-top:10px;
+                            word-break:break-word;
+                            font-size:13px;
+                        ">
+
+                            <span id="userId">
+                                --
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- ACCOUNT CREATED -->
+
+                    <div class="sensor-card">
+
+                        <h3>
+                            📅 Account Created
+                        </h3>
+
+                        <div style="
+                            margin-top:10px;
+                        ">
+
+                            <span id="accountCreated">
+                                --
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- LOGIN PROVIDER -->
+
+                    <div class="sensor-card">
+
+                        <h3>
+                            🔐 Login Method
+                        </h3>
+
+                        <div style="
+                            margin-top:10px;
+                        ">
+
+                            <span id="loginProvider">
+                                --
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =================================================
+                     SYSTEM INFORMATION
+                ================================================== -->
+
+                <section
+                    class="analysis"
+                    style="margin-top:25px;"
+                >
+
+
+                    <div class="analysis-box">
+
+                        <h2>
+                            🤖 AI Sleep Monitor
+                        </h2>
+
+
+                        <p>
+
+                            Your account is connected to the
+                            AI and IoT-Based Sleep Quality
+                            Monitoring System.
+
+                        </p>
+
+
+                        <br>
+
+
+                        <p>
+
+                            Sleep sensor data collected by the
+                            ESP32 is associated with your
+                            authenticated Firebase account.
+
+                        </p>
+
+                    </div>
+
+
+
+                    <div class="analysis-box">
+
+                        <h2>
+                            📡 Connected System
+                        </h2>
+
+
+                        <ul>
+
+                            <li>
+                                ESP32 Sleep Monitoring Device
+                            </li>
+
+                            <li>
+                                DHT11 Temperature & Humidity Sensor
+                            </li>
+
+                            <li>
+                                MAX30102 Heart Rate & SpO₂ Sensor
+                            </li>
+
+                            <li>
+                                MPU6050 Movement Sensor
+                            </li>
+
+                            <li>
+                                Microphone Sound Sensor
+                            </li>
+
+                            <li>
+                                Firebase Realtime Database
+                            </li>
+
+                            <li>
+                                Machine Learning Sleep Quality Model
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+
+                </section>
+
+
+
+                <!-- =================================================
+                     ACTIONS
+                ================================================== -->
+
+                <section
+                    style="
+                        margin-top:25px;
+                        display:flex;
+                        gap:10px;
+                        flex-wrap:wrap;
+                    "
+                >
+
+                    <button
+                        id="refreshProfileBtn"
+                        class="primary-btn"
+                    >
+
+                        🔄 Refresh Profile
+
+                    </button>
+
+
+                    <button
+                        id="logoutProfileBtn"
+                        class="secondary-btn"
+                    >
+
+                        🚪 Logout
+
+                    </button>
+
+                </section>
+
+
+            </section>
+
+
+
+            <!-- =================================================
+                 FOOTER
+            ================================================== -->
+
+            <footer class="footer">
+
+                <p>
+
+                    AI and IoT-Based Sleep Quality
+                    Monitoring System
+
+                </p>
+
+            </footer>
+
+
+        </main>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         JAVASCRIPT
+    ====================================================== -->
+
+    <script
+        type="module"
+        src="./js/profile.js">
+    </script>
+
+
+</body>
+
+</html>

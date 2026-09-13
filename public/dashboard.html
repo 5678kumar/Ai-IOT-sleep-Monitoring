@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Sleep Monitor - Dashboard</title>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f7fb;
+            color: #1f2937;
+        }
+
+        /* =========================
+           DASHBOARD LAYOUT
+           ========================= */
+
+        .dashboard {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* =========================
+           SIDEBAR
+           ========================= */
+
+        .sidebar {
+            width: 250px;
+            background: #111827;
+            color: white;
+            padding: 25px 15px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            overflow-y: auto;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .logo h2 {
+            font-size: 22px;
+            margin-bottom: 6px;
+        }
+
+        .logo p {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-menu li {
+            margin-bottom: 10px;
+        }
+
+        .nav-menu a,
+        .logout-btn {
+            width: 100%;
+            display: block;
+            padding: 13px 15px;
+            text-decoration: none;
+            color: #d1d5db;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .nav-menu a:hover,
+        .nav-menu a.active,
+        .logout-btn:hover {
+            background: #2563eb;
+            color: white;
+        }
+
+        /* =========================
+           MAIN CONTENT
+           ========================= */
+
+        .main-content {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+            padding: 30px;
+        }
+
+        /* =========================
+           HEADER
+           ========================= */
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 30px;
+            color: #111827;
+        }
+
+        .header p {
+            margin-top: 7px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .status-badge {
+            padding: 10px 16px;
+            border-radius: 20px;
+            background: #dcfce7;
+            color: #166534;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        /* =========================
+           SENSOR CARDS
+           ========================= */
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+
+        .sensor-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .sensor-card h3 {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+
+        .sensor-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .sensor-unit {
+            font-size: 13px;
+            color: #6b7280;
+            margin-left: 4px;
+        }
+
+        /* =========================
+           SECTION TITLE
+           ========================= */
+
+        .section-title {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: #111827;
+        }
+
+        /* =========================
+           AI PREDICTION
+           ========================= */
+
+        .ai-section {
+            background: white;
+            border-radius: 15px;
+            padding: 28px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+        }
+
+        .ai-section .section-title {
+            font-size: 25px;
+            margin-bottom: 22px;
+        }
+
+        .ai-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .ai-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 22px;
+            background: #f9fafb;
+            min-height: 130px;
+        }
+
+        .ai-card h4 {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+
+        .ai-card p {
+            font-size: 22px;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        /* Main AI prediction card */
+
+        .prediction-main {
+            background: #eef4ff;
+            border: 2px solid #2563eb;
+        }
+
+        .prediction-main h4 {
+            color: #374151;
+            font-size: 16px;
+        }
+
+        #sleepQuality {
+            font-size: 34px;
+            color: #2563eb;
+            font-weight: bold;
+        }
+
+        #confidence {
+            color: #059669;
+        }
+
+        #predictionStatus {
+            color: #2563eb;
+        }
+
+        /* =========================
+           CHARTS
+           ========================= */
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .chart-card h3 {
+            font-size: 17px;
+            margin-bottom: 15px;
+            color: #111827;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        /* =========================
+           ANALYSIS
+           ========================= */
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .analysis-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .analysis-card h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #111827;
+        }
+
+        .analysis-card p {
+            color: #4b5563;
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        #recommendations {
+            padding-left: 20px;
+            color: #4b5563;
+        }
+
+        #recommendations li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        /* =========================
+           MONITORING INFORMATION
+           ========================= */
+
+        .info-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .info-section h2 {
+            margin-bottom: 15px;
+            font-size: 20px;
+            color: #111827;
+        }
+
+        .info-section p {
+            color: #6b7280;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        /* =========================
+           FOOTER
+           ========================= */
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #9ca3af;
+            font-size: 13px;
+        }
+
+        .footer p {
+            margin-bottom: 5px;
+        }
+
+        /* =========================
+           RESPONSIVE
+           ========================= */
+
+        @media (max-width: 1100px) {
+
+            .sensor-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .ai-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+
+            .sidebar {
+                width: 210px;
+            }
+
+            .main-content {
+                margin-left: 210px;
+                width: calc(100% - 210px);
+                padding: 20px;
+            }
+
+            .sensor-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .ai-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 600px) {
+
+            .dashboard {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                position: relative;
+                width: 100%;
+                min-height: auto;
+            }
+
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="dashboard">
+
+    <!-- =====================================================
+         SIDEBAR
+         ===================================================== -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+
+            <h2>AI Sleep Monitor</h2>
+
+            <p>IoT + Machine Learning</p>
+
+        </div>
+
+
+        <ul class="nav-menu">
+
+            <li>
+                <a href="dashboard.html" class="active">
+                    Dashboard
+                </a>
+            </li>
+
+            <li>
+                <a href="sleep-analysis.html">
+                    Sleep Analysis
+                </a>
+            </li>
+
+            <li>
+                <a href="history.html">
+                    History
+                </a>
+            </li>
+
+            <li>
+                <a href="reports.html">
+                    Reports
+                </a>
+            </li>
+
+            <li>
+                <a href="profile.html">
+                    Profile
+                </a>
+            </li>
+
+            <li>
+                <button id="logoutBtn" class="logout-btn">
+                    Logout
+                </button>
+            </li>
+
+        </ul>
+
+    </aside>
+
+
+    <!-- =====================================================
+         MAIN CONTENT
+         ===================================================== -->
+
+    <main class="main-content">
+
+
+        <!-- HEADER -->
+
+        <div class="header">
+
+            <div>
+
+                <h1>
+                    Sleep Monitoring Dashboard
+                </h1>
+
+                <p>
+                    Real-time AI and IoT-based sleep quality monitoring
+                </p>
+
+            </div>
+
+
+            <div class="status-badge">
+                ● Monitoring
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             SENSOR DATA
+             ===================================================== -->
+
+        <div class="sensor-grid">
+
+
+            <!-- HEART RATE -->
+
+            <div class="sensor-card">
+
+                <h3>
+                    ❤️ Heart Rate
+                </h3>
+
+                <span id="heartRate" class="sensor-value">
+                    --
+                </span>
+
+                <span class="sensor-unit">
+                    BPM
+                </span>
+
+            </div>
+
+
+            <!-- SPO2 -->
+
+            <div class="sensor-card">
+
+                <h3>
+                    🫁 SpO₂
+                </h3>
+
+                <span id="spo2" class="sensor-value">
+                    --
+                </span>
+
+                <span class="sensor-unit">
+                    %
+                </span>
+
+            </div>
+
+
+            <!-- TEMPERATURE -->
+
+            <div class="sensor-card">
+
+                <h3>
+                    🌡️ Temperature
+                </h3>
+
+                <span id="temperature" class="sensor-value">
+                    --
+                </span>
+
+                <span class="sensor-unit">
+                    °C
+                </span>
+
+            </div>
+
+
+            <!-- HUMIDITY -->
+
+            <div class="sensor-card">
+
+                <h3>
+                    💧 Humidity
+                </h3>
+
+                <span id="humidity" class="sensor-value">
+                    --
+                </span>
+
+                <span class="sensor-unit">
+                    %
+                </span>
+
+            </div>
+
+
+            <!-- MOVEMENT -->
+
+            <div class="sensor-card">
+
+                <h3>
+                    🛌 Movement
+                </h3>
+
+                <span id="movement" class="sensor-value">
+                    --
+                </span>
+
+                <span class="sensor-unit">
+                    index
+                </span>
+
+            </div>
+
+
+            <!-- NOISE -->
+
+            <div class="sensor-card">
+
+                <h3>
+                    🔊 Noise
+                </h3>
+
+                <span id="noise" class="sensor-value">
+                    --
+                </span>
+
+                <span class="sensor-unit">
+                    index
+                </span>
+
+            </div>
+
+
+            <!-- SLEEP DURATION -->
+
+            <div class="sensor-card">
+
+                <h3>
+                    💤 Sleep Duration
+                </h3>
+
+                <span id="sleepDuration" class="sensor-value">
+                    --
+                </span>
+
+                <span class="sensor-unit">
+                    hours
+                </span>
+
+            </div>
+
+
+        </div>
+
+
+        <!-- =====================================================
+             AI SLEEP QUALITY PREDICTION
+             ===================================================== -->
+
+        <section class="ai-section">
+
+            <h2 class="section-title">
+                🤖 AI Sleep Quality Prediction
+            </h2>
+
+
+            <div class="ai-grid">
+
+
+                <!-- SLEEP QUALITY -->
+
+                <div class="ai-card prediction-main">
+
+                    <h4>
+                        Sleep Quality
+                    </h4>
+
+                    <p id="sleepQuality">
+                        Waiting...
+                    </p>
+
+                </div>
+
+
+                <!-- CONFIDENCE -->
+
+                <div class="ai-card">
+
+                    <h4>
+                        Model Confidence
+                    </h4>
+
+                    <p id="confidence">
+                        --
+                    </p>
+
+                </div>
+
+
+                <!-- STATUS -->
+
+                <div class="ai-card">
+
+                    <h4>
+                        Prediction Status
+                    </h4>
+
+                    <p id="predictionStatus">
+                        Waiting for data
+                    </p>
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             SENSOR CHARTS
+             ===================================================== -->
+
+        <section>
+
+            <h2 class="section-title">
+                📊 Sensor Monitoring
+            </h2>
+
+
+            <div class="chart-grid">
+
+
+                <!-- HEART RATE -->
+
+                <div class="chart-card">
+
+                    <h3>
+                        ❤️ Heart Rate
+                    </h3>
+
+                    <div class="chart-container">
+
+                        <canvas id="heartRateChart"></canvas>
+
+                    </div>
+
+                </div>
+
+
+                <!-- TEMPERATURE -->
+
+                <div class="chart-card">
+
+                    <h3>
+                        🌡️ Temperature
+                    </h3>
+
+                    <div class="chart-container">
+
+                        <canvas id="temperatureChart"></canvas>
+
+                    </div>
+
+                </div>
+
+
+                <!-- HUMIDITY -->
+
+                <div class="chart-card">
+
+                    <h3>
+                        💧 Humidity
+                    </h3>
+
+                    <div class="chart-container">
+
+                        <canvas id="humidityChart"></canvas>
+
+                    </div>
+
+                </div>
+
+
+                <!-- MOVEMENT -->
+
+                <div class="chart-card">
+
+                    <h3>
+                        🛌 Movement
+                    </h3>
+
+                    <div class="chart-container">
+
+                        <canvas id="movementChart"></canvas>
+
+                    </div>
+
+                </div>
+
+
+                <!-- NOISE -->
+
+                <div class="chart-card">
+
+                    <h3>
+                        🔊 Noise Index
+                    </h3>
+
+                    <div class="chart-container">
+
+                        <canvas id="noiseChart"></canvas>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             AI ANALYSIS + RECOMMENDATIONS
+             ===================================================== -->
+
+        <div class="analysis-grid">
+
+
+            <!-- AI ANALYSIS -->
+
+            <div class="analysis-card">
+
+                <h2>
+                    🧠 AI Analysis
+                </h2>
+
+                <p id="analysisText">
+                    Waiting for sleep data and AI analysis...
+                </p>
+
+            </div>
+
+
+            <!-- RECOMMENDATIONS -->
+
+            <div class="analysis-card">
+
+                <h2>
+                    💡 Recommendations
+                </h2>
+
+                <ul id="recommendations">
+
+                    <li>
+                        Continue collecting sleep sensor data.
+                    </li>
+
+                </ul>
+
+            </div>
+
+
+        </div>
+
+
+        <!-- =====================================================
+             MONITORING INFORMATION
+             ===================================================== -->
+
+        <section class="info-section">
+
+            <h2>
+                📋 Monitoring Information
+            </h2>
+
+            <p>
+                The dashboard receives sleep monitoring data
+                from the ESP32 through Firebase Realtime Database.
+            </p>
+
+            <br>
+
+            <p>
+                Sensor records are grouped according to the
+                monitoring session and processed by the machine
+                learning system.
+            </p>
+
+            <br>
+
+            <p>
+                The AI model uses heart rate, SpO₂, movement,
+                temperature, humidity, noise index, and sleep
+                duration to estimate the sleep quality category.
+            </p>
+
+            <br>
+
+            <p>
+                The displayed prediction is generated by the
+                trained Random Forest machine learning model.
+            </p>
+
+        </section>
+
+
+        <!-- =====================================================
+             FOOTER
+             ===================================================== -->
+
+        <div class="footer">
+
+            <p>
+                AI and IoT-Based Sleep Quality Monitoring System
+            </p>
+
+            <p>
+                ESP32 • Firebase • Node.js • Flask • Machine Learning
+            </p>
+
+        </div>
+
+
+    </main>
+
+</div>
+
+
+<!-- =====================================================
+     DASHBOARD JAVASCRIPT
+     ===================================================== -->
+
+<script type="module" src="./js/dashboard.js"></script>
+
+
+</body>
+
+</html>
