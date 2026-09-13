@@ -2,29 +2,6 @@
 // AI & IoT SLEEP MONITOR
 // SLEEP ANALYSIS PAGE
 // ============================================================
-//
-// Firebase structure supported:
-//
-// users
-//   └── UID
-//       ├── sleep_data
-//       │    └── sensor records
-//       │
-//       └── daily_summaries
-//            └── 2026-09-13
-//                 └── SESSION_xxxxx
-//                      ├── ai_analysis
-//                      ├── average_heart_rate
-//                      ├── average_spo2
-//                      ├── average_movement
-//                      ├── average_temperature
-//                      ├── average_humidity
-//                      ├── average_noise
-//                      ├── sleep_duration_hours
-//                      ├── sleep_quality
-//                      ├── confidence
-//                      └── records_used
-//
 // ============================================================
 
 
