@@ -1,162 +1,610 @@
-// ======================================================
-// AI SLEEP MONITOR
-// SLEEP ANALYSIS
-// DAILY SUMMARY VERSION
-// ======================================================
+// ============================================================
+// AI & IoT SLEEP MONITOR
+// SLEEP ANALYSIS PAGE
+// ============================================================
+//
+// Firebase structure supported:
+//
+// users
+//   └── UID
+//       ├── sleep_data
+//       │    └── sensor records
+//       │
+//       └── daily_summaries
+//            └── 2026-09-13
+//                 └── SESSION_xxxxx
+//                      ├── ai_analysis
+//                      ├── average_heart_rate
+//                      ├── average_spo2
+//                      ├── average_movement
+//                      ├── average_temperature
+//                      ├── average_humidity
+//                      ├── average_noise
+//                      ├── sleep_duration_hours
+//                      ├── sleep_quality
+//                      ├── confidence
+//                      └── records_used
+//
+// ============================================================
+
+
+// ============================================================
+// IMPORT FIREBASE FROM app.js
+// IMPORTANT: DO NOT initialize Firebase again here.
+// ============================================================
 
 import {
-    initializeApp
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    auth,
+    database
+} from "./app.js";
 
 import {
-    getAuth,
     onAuthStateChanged,
     signOut
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 import {
-    getDatabase,
     ref,
     onValue
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
-import {
-    firebaseConfig
-} from "./firebase-config.js";
+
+// ============================================================
+// GLOBAL VARIABLES
+// ============================================================
+
+let dailySummaryLoaded = false;
 
 
-// ======================================================
-// FIREBASE
-// ======================================================
+// ============================================================
+// BASIC HTML HELPER
+// ============================================================
 
-const app = initializeApp(firebaseConfig);
+function setText(id, value) {
 
-const auth = getAuth(app);
+    const element = document.getElementById(id);
 
-const database = getDatabase(app);
+    if (element) {
+        element.textContent = value;
+    }
+
+}
 
 
-// ======================================================
+// ============================================================
+// NUMBER HELPER
+// ============================================================
+
+function getNumber(object, keys) {
+
+    if (!object) {
+        return 0;
+    }
+
+    for (const key of keys) {
+
+        const value = object[key];
+
+        if (
+            value !== undefined &&
+            value !== null &&
+            value !== ""
+        ) {
+
+            const number = Number(value);
+
+            if (Number.isFinite(number)) {
+                return number;
+            }
+
+        }
+
+    }
+
+    return 0;
+}
+
+
+// ============================================================
+// AVERAGE
+// ============================================================
+
+function average(records, keys) {
+
+    if (!Array.isArray(records) || records.length === 0) {
+        return 0;
+    }
+
+    const values = [];
+
+    records.forEach(record => {
+
+        const value =
+            getNumber(record, keys);
+
+        if (
+            Number.isFinite(value) &&
+            value !== 0
+        ) {
+
+            values.push(value);
+
+        }
+
+    });
+
+
+    if (values.length === 0) {
+        return 0;
+    }
+
+
+    const total =
+        values.reduce(
+            (sum, value) => sum + value,
+            0
+        );
+
+
+    return total / values.length;
+}
+
+
+// ============================================================
+// MAXIMUM
+// Used for sleep duration because duration increases
+// throughout a monitoring session.
+// ============================================================
+
+function maximum(records, keys) {
+
+    if (!Array.isArray(records) || records.length === 0) {
+        return 0;
+    }
+
+    let max = 0;
+
+    records.forEach(record => {
+
+        const value =
+            getNumber(record, keys);
+
+        if (Number.isFinite(value)) {
+
+            max =
+                Math.max(
+                    max,
+                    value
+                );
+
+        }
+
+    });
+
+    return max;
+}
+
+
+// ============================================================
+// CONFIDENCE FORMAT
+// ============================================================
+
+function confidenceText(value) {
+
+    const number = Number(value);
+
+    if (!Number.isFinite(number)) {
+        return "--";
+    }
+
+
+    // Firebase may store 0.51
+    // or 51
+
+    if (number <= 1) {
+
+        return (
+            number * 100
+        ).toFixed(1) + "%";
+
+    }
+
+
+    return number.toFixed(1) + "%";
+}
+
+
+// ============================================================
 // AUTHENTICATION
-// ======================================================
+// ============================================================
 
 onAuthStateChanged(
     auth,
-    (user) => {
+    user => {
 
-        if (user) {
+        console.log(
+            "======================================"
+        );
+
+        console.log(
+            "SLEEP ANALYSIS AUTH CHECK"
+        );
+
+        console.log(
+            "======================================"
+        );
+
+
+        if (!user) {
 
             console.log(
-                "Sleep Analysis user:",
-                user.email
+                "No authenticated user."
             );
-
-            console.log(
-                "Sleep Analysis UID:",
-                user.uid
-            );
-
-            loadDailySummary(
-                user.uid
-            );
-
-        } else {
 
             window.location.href =
                 "index.html";
+
+            return;
+
         }
+
+
+        console.log(
+            "Authenticated user:",
+            user.email
+        );
+
+        console.log(
+            "Firebase UID:",
+            user.uid
+        );
+
+
+        // ----------------------------------------------------
+        // DISPLAY USER EMAIL
+        // ----------------------------------------------------
+
+        setText(
+            "userEmail",
+            user.email || "Authenticated"
+        );
+
+
+        // ----------------------------------------------------
+        // LOGOUT
+        // ----------------------------------------------------
+
+        const logoutButton =
+            document.getElementById(
+                "topLogout"
+            );
+
+
+        if (logoutButton) {
+
+            logoutButton.onclick =
+                async function () {
+
+                    try {
+
+                        await signOut(auth);
+
+                        window.location.href =
+                            "index.html";
+
+                    }
+                    catch (error) {
+
+                        console.error(
+                            "Logout error:",
+                            error
+                        );
+
+                    }
+
+                };
+
+        }
+
+
+        // ----------------------------------------------------
+        // LOAD DATA
+        // ----------------------------------------------------
+
+        loadDailySummaries(
+            user.uid
+        );
+
+        loadRawSleepData(
+            user.uid
+        );
+
     }
 );
 
 
-// ======================================================
-// LOAD DAILY SUMMARY
-// ======================================================
+// ============================================================
+// LOAD DAILY AI SUMMARIES
+// ============================================================
 
-function loadDailySummary(uid) {
+function loadDailySummaries(uid) {
 
-    const summaryRef =
+    const dailySummaryRef =
         ref(
             database,
-            "users/" +
-            uid +
-            "/daily_summaries"
+            `users/${uid}/daily_summaries`
         );
 
 
-    onValue(
-        summaryRef,
+    console.log(
+        "======================================"
+    );
 
-        (snapshot) => {
+    console.log(
+        "READING DAILY AI SUMMARIES"
+    );
+
+    console.log(
+        `users/${uid}/daily_summaries`
+    );
+
+    console.log(
+        "======================================"
+    );
+
+
+    onValue(
+
+        dailySummaryRef,
+
+        snapshot => {
 
             const data =
                 snapshot.val();
 
 
             console.log(
-                "======================================"
-            );
-
-            console.log(
-                "DAILY SUMMARY DATA"
+                "Firebase daily_summaries:"
             );
 
             console.log(
                 data
             );
 
-            console.log(
-                "======================================"
-            );
-
 
             if (!data) {
 
                 console.log(
-                    "No daily summary available."
+                    "No daily_summaries data found."
                 );
 
-                // Fallback to raw sensor data
-                loadRawSensorData(uid);
-
                 return;
+
             }
 
 
-            const summaries =
-                Object.entries(data)
-                    .map(
-                        ([key, value]) => ({
-                            ...value,
-                            firebaseKey: key
-                        })
-                    );
+            const summaries = [];
+
+
+            // ==================================================
+            // RECURSIVELY SEARCH FIREBASE DATA
+            //
+            // This supports:
+            //
+            // daily_summaries
+            //   -> date
+            //      -> session
+            //
+            // AND
+            //
+            // daily_summaries
+            //   -> session
+            //
+            // ==================================================
+
+            function searchSummary(
+                object,
+                currentDate = "",
+                currentSession = ""
+            ) {
+
+                if (
+                    !object ||
+                    typeof object !== "object"
+                ) {
+
+                    return;
+
+                }
+
+
+                // ------------------------------------------------
+                // CHECK WHETHER THIS OBJECT IS A DAILY SUMMARY
+                // ------------------------------------------------
+
+                const isSummary =
+                    object.average_heart_rate !== undefined ||
+                    object.average_spo2 !== undefined ||
+                    object.average_movement !== undefined ||
+                    object.average_temperature !== undefined ||
+                    object.average_humidity !== undefined ||
+                    object.average_noise !== undefined ||
+                    object.sleep_quality !== undefined ||
+                    object.confidence !== undefined ||
+                    object.ai_analysis !== undefined;
+
+
+                if (isSummary) {
+
+                    summaries.push({
+
+                        ...object,
+
+                        date_key:
+                            object.date_key ||
+                            currentDate ||
+                            object.date ||
+                            "--",
+
+                        session_id:
+                            object.session_id ||
+                            currentSession ||
+                            "--"
+
+                    });
+
+
+                    return;
+
+                }
+
+
+                // ------------------------------------------------
+                // SEARCH CHILD OBJECTS
+                // ------------------------------------------------
+
+                Object.entries(
+                    object
+                ).forEach(
+                    ([key, value]) => {
+
+                        if (
+                            !value ||
+                            typeof value !== "object"
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        let nextDate =
+                            currentDate;
+
+                        let nextSession =
+                            currentSession;
+
+
+                        // ------------------------------------------------
+                        // DATE KEY
+                        // Example: 2026-09-13
+                        // ------------------------------------------------
+
+                        if (
+                            /^\d{4}-\d{2}-\d{2}$/
+                                .test(key)
+                        ) {
+
+                            nextDate =
+                                key;
+
+                        }
+
+
+                        // ------------------------------------------------
+                        // SESSION KEY
+                        // Example: SESSION_c96be0a6_1128
+                        // ------------------------------------------------
+
+                        if (
+                            key
+                                .toUpperCase()
+                                .startsWith(
+                                    "SESSION_"
+                                )
+                        ) {
+
+                            nextSession =
+                                key;
+
+                        }
+
+
+                        searchSummary(
+                            value,
+                            nextDate,
+                            nextSession
+                        );
+
+                    }
+                );
+
+            }
+
+
+            // Start recursive search
+
+            searchSummary(data);
+
+
+            console.log(
+                "Number of AI summaries found:",
+                summaries.length
+            );
+
+            console.log(
+                "AI summaries:",
+                summaries
+            );
 
 
             if (
                 summaries.length === 0
             ) {
 
-                loadRawSensorData(uid);
+                console.log(
+                    "No saved AI summary found."
+                );
 
                 return;
+
             }
 
 
-            // Sort by generated time
+            // ==================================================
+            // SORT SUMMARIES
+            // ==================================================
+
             summaries.sort(
                 (a, b) => {
 
                     const dateA =
-                        getDateValue(a);
+                        String(
+                            a.date_key || ""
+                        );
 
                     const dateB =
-                        getDateValue(b);
+                        String(
+                            b.date_key || ""
+                        );
 
-                    return dateA - dateB;
+
+                    if (
+                        dateA !== dateB
+                    ) {
+
+                        return dateA.localeCompare(
+                            dateB
+                        );
+
+                    }
+
+
+                    return String(
+                        a.session_id || ""
+                    ).localeCompare(
+                        String(
+                            b.session_id || ""
+                        )
+                    );
+
                 }
             );
 
+
+            // ==================================================
+            // GET LATEST SUMMARY
+            // ==================================================
 
             const latest =
                 summaries[
@@ -165,64 +613,628 @@ function loadDailySummary(uid) {
 
 
             console.log(
-                "LATEST DAILY SUMMARY:",
+                "======================================"
+            );
+
+            console.log(
+                "LATEST SAVED AI SUMMARY"
+            );
+
+            console.log(
                 latest
             );
 
-
-            displayDailySummary(
-                latest
+            console.log(
+                "======================================"
             );
 
 
-            displayAnalysis(
+            // ==================================================
+            // DISPLAY SUMMARY
+            // ==================================================
+
+            dailySummaryLoaded =
+                true;
+
+
+            displaySummary(
                 latest
             );
 
         },
 
-        (error) => {
+        error => {
 
             console.error(
-                "Daily summary Firebase error:",
+                "Firebase daily_summaries error:"
+            );
+
+            console.error(
                 error
             );
 
-            loadRawSensorData(uid);
         }
+
     );
+
 }
 
 
-// ======================================================
-// FALLBACK RAW SENSOR DATA
-// ======================================================
+// ============================================================
+// DISPLAY DAILY AI SUMMARY
+// ============================================================
 
-function loadRawSensorData(uid) {
+function displaySummary(summary) {
+
+    if (!summary) {
+        return;
+    }
+
+
+    console.log(
+        "Displaying AI summary:"
+    );
+
+    console.log(
+        summary
+    );
+
+
+    // ========================================================
+    // HEART RATE
+    // ========================================================
+
+    const heartRate =
+        getNumber(
+            summary,
+            [
+                "average_heart_rate",
+                "avg_heart_rate",
+                "heart_rate",
+                "Heart_Rate"
+            ]
+        );
+
+
+    // ========================================================
+    // SPO2
+    // ========================================================
+
+    const spo2 =
+        getNumber(
+            summary,
+            [
+                "average_spo2",
+                "avg_spo2",
+                "spo2",
+                "SpO2"
+            ]
+        );
+
+
+    // ========================================================
+    // TEMPERATURE
+    // ========================================================
+
+    const temperature =
+        getNumber(
+            summary,
+            [
+                "average_temperature",
+                "avg_temperature",
+                "average_temperature_c",
+                "temperature_c",
+                "Temperature_C",
+                "temperature"
+            ]
+        );
+
+
+    // ========================================================
+    // HUMIDITY
+    // ========================================================
+
+    const humidity =
+        getNumber(
+            summary,
+            [
+                "average_humidity",
+                "avg_humidity",
+                "average_humidity_percent",
+                "humidity_percent",
+                "Humidity_pct",
+                "humidity"
+            ]
+        );
+
+
+    // ========================================================
+    // MOVEMENT
+    // ========================================================
+
+    const movement =
+        getNumber(
+            summary,
+            [
+                "average_movement",
+                "avg_movement",
+                "movement",
+                "Movement"
+            ]
+        );
+
+
+    // ========================================================
+    // NOISE
+    // ========================================================
+
+    const noise =
+        getNumber(
+            summary,
+            [
+                "average_noise",
+                "avg_noise",
+                "average_noise_index",
+                "noise_index",
+                "Noise_dB",
+                "Noise"
+            ]
+        );
+
+
+    // ========================================================
+    // SLEEP DURATION
+    // ========================================================
+
+    const duration =
+        getNumber(
+            summary,
+            [
+                "sleep_duration_hours",
+                "average_sleep_duration_hours",
+                "Sleep_Duration_Hours",
+                "Sleep_Duration_hr"
+            ]
+        );
+
+
+    // ========================================================
+    // SLEEP QUALITY
+    // ========================================================
+
+    const quality =
+        summary.sleep_quality ||
+        summary.Sleep_Quality ||
+        summary.quality ||
+        summary.prediction ||
+        summary.predicted_quality ||
+        summary.result ||
+        "Waiting...";
+
+
+    // ========================================================
+    // CONFIDENCE
+    // ========================================================
+
+    const confidence =
+        summary.confidence ??
+        summary.Confidence ??
+        summary.prediction_confidence ??
+        summary.model_confidence;
+
+
+    // ========================================================
+    // DATE
+    // ========================================================
+
+    const date =
+        summary.date_key ||
+        summary.date ||
+        "--";
+
+
+    // ========================================================
+    // RECORD COUNT
+    // ========================================================
+
+    const recordsUsed =
+        summary.records_used ??
+        summary.record_count ??
+        summary.recordsUsed;
+
+
+    // ========================================================
+    // AI ANALYSIS
+    // ========================================================
+
+    const aiAnalysis =
+        summary.ai_analysis ||
+        summary.analysis ||
+        summary.message ||
+        "";
+
+
+    // ========================================================
+    // CONSOLE DEBUG
+    // ========================================================
+
+    console.log(
+        "--------------------------------------"
+    );
+
+    console.log(
+        "FINAL DISPLAY VALUES"
+    );
+
+    console.log(
+        "Heart Rate:",
+        heartRate
+    );
+
+    console.log(
+        "SpO2:",
+        spo2
+    );
+
+    console.log(
+        "Temperature:",
+        temperature
+    );
+
+    console.log(
+        "Humidity:",
+        humidity
+    );
+
+    console.log(
+        "Movement:",
+        movement
+    );
+
+    console.log(
+        "Noise:",
+        noise
+    );
+
+    console.log(
+        "Sleep Duration:",
+        duration
+    );
+
+    console.log(
+        "Sleep Quality:",
+        quality
+    );
+
+    console.log(
+        "Confidence:",
+        confidence
+    );
+
+    console.log(
+        "Date:",
+        date
+    );
+
+    console.log(
+        "Records Used:",
+        recordsUsed
+    );
+
+    console.log(
+        "AI Analysis:",
+        aiAnalysis
+    );
+
+    console.log(
+        "--------------------------------------"
+    );
+
+
+    // ========================================================
+    // DISPLAY QUALITY
+    // ========================================================
+
+    setText(
+        "quality",
+        quality
+    );
+
+
+    // ========================================================
+    // DISPLAY CONFIDENCE
+    // ========================================================
+
+    setText(
+        "confidence",
+        confidenceText(
+            confidence
+        )
+    );
+
+
+    // ========================================================
+    // DISPLAY DATE
+    // ========================================================
+
+    setText(
+        "analysisDate",
+        date
+    );
+
+
+    // ========================================================
+    // DISPLAY SENSOR VALUES
+    // ========================================================
+
+    setText(
+        "hrAvg",
+        heartRate > 0
+            ? heartRate.toFixed(1)
+            : "--"
+    );
+
+
+    setText(
+        "spo2Avg",
+        spo2 > 0
+            ? spo2.toFixed(1)
+            : "--"
+    );
+
+
+    setText(
+        "tempAvg",
+        temperature !== 0
+            ? temperature.toFixed(1)
+            : "--"
+    );
+
+
+    setText(
+        "humidityAvg",
+        humidity !== 0
+            ? humidity.toFixed(1)
+            : "--"
+    );
+
+
+    setText(
+        "movementAvg",
+        Number.isFinite(movement)
+            ? movement.toFixed(2)
+            : "--"
+    );
+
+
+    setText(
+        "noiseAvg",
+        Number.isFinite(noise)
+            ? noise.toFixed(0)
+            : "--"
+    );
+
+
+    setText(
+        "duration",
+        duration > 0
+            ? duration.toFixed(2)
+            : "--"
+    );
+
+
+    // ========================================================
+    // QUALITY NOTE
+    // ========================================================
+
+    if (aiAnalysis) {
+
+        setText(
+            "qualityNote",
+            aiAnalysis
+        );
+
+    }
+    else if (
+        recordsUsed !== undefined &&
+        recordsUsed !== null
+    ) {
+
+        setText(
+            "qualityNote",
+            `${recordsUsed} records used for the saved daily prediction.`
+        );
+
+    }
+    else {
+
+        setText(
+            "qualityNote",
+            "Daily AI summary loaded."
+        );
+
+    }
+
+
+    // ========================================================
+    // BADGES
+    // ========================================================
+
+    setText(
+        "hrBadge",
+        heartRate > 0
+            ? "Average"
+            : "--"
+    );
+
+
+    setText(
+        "spo2Badge",
+        spo2 > 0
+            ? "Average"
+            : "--"
+    );
+
+
+    // ========================================================
+    // HEART RATE PROGRESS
+    // ========================================================
+
+    const hrProgress =
+        document.getElementById(
+            "hrProgress"
+        );
+
+
+    if (hrProgress) {
+
+        const width =
+            Math.min(
+                100,
+                Math.max(
+                    0,
+                    heartRate / 1.4
+                )
+            );
+
+
+        hrProgress.style.width =
+            width + "%";
+
+    }
+
+
+    // ========================================================
+    // SPO2 PROGRESS
+    // ========================================================
+
+    const spo2Progress =
+        document.getElementById(
+            "spo2Progress"
+        );
+
+
+    if (spo2Progress) {
+
+        const width =
+            Math.min(
+                100,
+                Math.max(
+                    0,
+                    spo2
+                )
+            );
+
+
+        spo2Progress.style.width =
+            width + "%";
+
+    }
+
+
+    // ========================================================
+    // SLEEP DURATION PROGRESS
+    // ========================================================
+
+    const durationProgress =
+        document.getElementById(
+            "durationProgress"
+        );
+
+
+    if (durationProgress) {
+
+        const width =
+            Math.min(
+                100,
+                Math.max(
+                    0,
+                    (duration / 8) * 100
+                )
+            );
+
+
+        durationProgress.style.width =
+            width + "%";
+
+    }
+
+
+    // ========================================================
+    // RECOMMENDATIONS
+    // ========================================================
+
+    displayRecommendations(
+        duration,
+        noise,
+        movement,
+        humidity
+    );
+
+}
+
+
+// ============================================================
+// RAW SENSOR DATA
+//
+// This is only a FALLBACK.
+// If the daily AI summary exists, the raw data will not
+// overwrite the AI result.
+// ============================================================
+
+function loadRawSleepData(uid) {
 
     const sleepDataRef =
         ref(
             database,
-            "users/" +
-            uid +
-            "/sleep_data"
+            `users/${uid}/sleep_data`
         );
 
 
+    console.log(
+        "======================================"
+    );
+
+    console.log(
+        "READING RAW SENSOR DATA"
+    );
+
+    console.log(
+        `users/${uid}/sleep_data`
+    );
+
+    console.log(
+        "======================================"
+    );
+
+
     onValue(
+
         sleepDataRef,
 
-        (snapshot) => {
+        snapshot => {
 
             const data =
                 snapshot.val();
 
 
+            console.log(
+                "Raw sleep_data:"
+            );
+
+            console.log(
+                data
+            );
+
+
             if (!data) {
 
-                showNoData();
+                console.log(
+                    "No raw sleep data."
+                );
 
                 return;
+
             }
 
 
@@ -234,1124 +1246,477 @@ function loadRawSensorData(uid) {
                 records.length === 0
             ) {
 
-                showNoData();
+                return;
+
+            }
+
+
+            // --------------------------------------------------
+            // IF DAILY AI SUMMARY ALREADY EXISTS,
+            // DO NOT REPLACE IT.
+            // --------------------------------------------------
+
+            if (dailySummaryLoaded) {
+
+                console.log(
+                    "Daily AI summary already loaded."
+                );
+
+                console.log(
+                    "Raw data will not overwrite it."
+                );
 
                 return;
-            }
 
-
-            // Find latest valid record
-            records.sort(
-                compareRecords
-            );
-
-
-            let latest = null;
-
-
-            for (
-                let i =
-                    records.length - 1;
-                i >= 0;
-                i--
-            ) {
-
-                if (
-                    isValidRecord(
-                        records[i]
-                    )
-                ) {
-
-                    latest =
-                        records[i];
-
-                    break;
-                }
-            }
-
-
-            if (!latest) {
-
-                latest =
-                    records[
-                        records.length - 1
-                    ];
             }
 
 
             console.log(
-                "Fallback latest sensor record:",
-                latest
+                "Using raw sensor data as fallback."
             );
 
 
-            displayRawRecord(
-                latest
-            );
-
-
-            setText(
-                "predictionStatus",
-                "Waiting for daily AI summary"
-            );
-
-
-            setText(
-                "analysisText",
-                "The system is collecting sensor data. Daily AI analysis will appear after enough valid records are collected."
-            );
-
-
-            updateRecommendations(
-                "Not predicted"
-            );
-        },
-
-        (error) => {
-
-            console.error(
-                "Raw sensor Firebase error:",
-                error
-            );
-
-            showNoData();
-        }
-    );
-}
-
-
-// ======================================================
-// SORT RECORDS
-// ======================================================
-
-function compareRecords(a, b) {
-
-    const timeA =
-        getRecordTime(a);
-
-    const timeB =
-        getRecordTime(b);
-
-    return timeA - timeB;
-}
-
-
-// ======================================================
-// GET RECORD TIME
-// ======================================================
-
-function getRecordTime(record) {
-
-    if (
-        record.timestamp
-    ) {
-
-        const time =
-            new Date(
-                record.timestamp
-            ).getTime();
-
-
-        if (
-            Number.isFinite(time)
-        ) {
-
-            return time;
-        }
-    }
-
-
-    return Number(
-        record.device_millis || 0
-    );
-}
-
-
-// ======================================================
-// GET DAILY SUMMARY TIME
-// ======================================================
-
-function getDateValue(summary) {
-
-    if (
-        summary.generated_at
-    ) {
-
-        const time =
-            new Date(
-                summary.generated_at
-            ).getTime();
-
-
-        if (
-            Number.isFinite(time)
-        ) {
-
-            return time;
-        }
-    }
-
-
-    if (
-        summary.date_key
-    ) {
-
-        const time =
-            new Date(
-                summary.date_key +
-                "T00:00:00"
-            ).getTime();
-
-
-        if (
-            Number.isFinite(time)
-        ) {
-
-            return time;
-        }
-    }
-
-
-    return 0;
-}
-
-
-// ======================================================
-// DISPLAY DAILY SUMMARY
-// ======================================================
-
-function displayDailySummary(
-    summary
-) {
-
-    console.log(
-        "Displaying daily summary:",
-        summary
-    );
-
-
-    // --------------------------------------------------
-    // HEART RATE
-    // --------------------------------------------------
-
-    const heartRate =
-        getSummaryValue(
-            summary,
-            [
-                "average_heart_rate",
-                "heart_rate",
-                "Heart_Rate"
-            ]
-        );
-
-
-    updateMultipleIds(
-        [
-            "heartRate",
-            "avgHeartRate"
-        ],
-        formatValue(
-            heartRate,
-            1
-        )
-    );
-
-
-    // --------------------------------------------------
-    // SPO2
-    // --------------------------------------------------
-
-    const spo2 =
-        getSummaryValue(
-            summary,
-            [
-                "average_spo2",
-                "spo2",
-                "SpO2"
-            ]
-        );
-
-
-    updateMultipleIds(
-        [
-            "spo2",
-            "avgSpo2"
-        ],
-        formatValue(
-            spo2,
-            1
-        )
-    );
-
-
-    // --------------------------------------------------
-    // TEMPERATURE
-    // --------------------------------------------------
-
-    const temperature =
-        getSummaryValue(
-            summary,
-            [
-                "average_temperature",
-                "temperature",
-                "temperature_c",
-                "Temperature_C"
-            ]
-        );
-
-
-    updateMultipleIds(
-        [
-            "temperature",
-            "avgTemperature"
-        ],
-        formatValue(
-            temperature,
-            2
-        )
-    );
-
-
-    // --------------------------------------------------
-    // HUMIDITY
-    // --------------------------------------------------
-
-    const humidity =
-        getSummaryValue(
-            summary,
-            [
-                "average_humidity",
-                "humidity",
-                "humidity_percent",
-                "Humidity_pct"
-            ]
-        );
-
-
-    updateMultipleIds(
-        [
-            "humidity",
-            "avgHumidity"
-        ],
-        formatValue(
-            humidity,
-            2
-        )
-    );
-
-
-    // --------------------------------------------------
-    // MOVEMENT
-    // --------------------------------------------------
-
-    const movement =
-        getSummaryValue(
-            summary,
-            [
-                "average_movement",
-                "movement",
-                "Movement"
-            ]
-        );
-
-
-    updateMultipleIds(
-        [
-            "movement",
-            "avgMovement"
-        ],
-        formatValue(
-            movement,
-            2
-        )
-    );
-
-
-    // --------------------------------------------------
-    // NOISE
-    // --------------------------------------------------
-
-    const noise =
-        getSummaryValue(
-            summary,
-            [
-                "average_noise",
-                "noise",
-                "noise_index",
-                "Noise_dB"
-            ]
-        );
-
-
-    updateMultipleIds(
-        [
-            "noise",
-            "avgNoise"
-        ],
-        formatValue(
-            noise,
-            2
-        )
-    );
-
-
-    // --------------------------------------------------
-    // SLEEP DURATION
-    // --------------------------------------------------
-
-    const sleepDuration =
-        getSummaryValue(
-            summary,
-            [
-                "sleep_duration_hours",
-                "sleepDuration",
-                "Sleep_Duration_Hours"
-            ]
-        );
-
-
-    updateMultipleIds(
-        [
-            "sleepDuration"
-        ],
-        formatValue(
-            sleepDuration,
-            2
-        )
-    );
-
-
-    // --------------------------------------------------
-    // AI QUALITY
-    // --------------------------------------------------
-
-    const quality =
-        summary.sleep_quality ||
-        summary.sleepQuality ||
-        "Not predicted";
-
-
-    setText(
-        "sleepQuality",
-        quality
-    );
-
-
-    // --------------------------------------------------
-    // CONFIDENCE
-    // --------------------------------------------------
-
-    let confidence =
-        summary.confidence;
-
-
-    confidence =
-        normalizeConfidence(
-            confidence
-        );
-
-
-    if (
-        confidence !== null
-    ) {
-
-        setText(
-            "confidence",
-            confidence.toFixed(2) +
-            "%"
-        );
-
-    } else {
-
-        setText(
-            "confidence",
-            "--"
-        );
-    }
-
-
-    // --------------------------------------------------
-    // STATUS
-    // --------------------------------------------------
-
-    setText(
-        "predictionStatus",
-        "Daily AI analysis available"
-    );
-
-
-    // --------------------------------------------------
-    // ANALYSIS
-    // --------------------------------------------------
-
-    displayAnalysis(
-        summary
-    );
-}
-
-
-// ======================================================
-// DISPLAY ANALYSIS
-// ======================================================
-
-function displayAnalysis(
-    summary
-) {
-
-    const quality =
-        summary.sleep_quality ||
-        summary.sleepQuality ||
-        "Not predicted";
-
-
-    // If saved analysis exists
-    if (
-        summary.ai_analysis
-    ) {
-
-        setText(
-            "analysisText",
-            summary.ai_analysis
-        );
-
-    } else {
-
-        generateAnalysis(
-            quality
-        );
-    }
-
-
-    updateRecommendations(
-        quality
-    );
-}
-
-
-// ======================================================
-// DISPLAY RAW RECORD
-// ======================================================
-
-function displayRawRecord(
-    record
-) {
-
-    if (!record) {
-
-        showNoData();
-
-        return;
-    }
-
-
-    updateMultipleIds(
-        [
-            "heartRate",
-            "avgHeartRate"
-        ],
-        formatValue(
-            record.heart_rate,
-            1
-        )
-    );
-
-
-    updateMultipleIds(
-        [
-            "spo2",
-            "avgSpo2"
-        ],
-        formatValue(
-            record.spo2,
-            1
-        )
-    );
-
-
-    updateMultipleIds(
-        [
-            "temperature",
-            "avgTemperature"
-        ],
-        formatValue(
-            record.temperature_c,
-            2
-        )
-    );
-
-
-    updateMultipleIds(
-        [
-            "humidity",
-            "avgHumidity"
-        ],
-        formatValue(
-            record.humidity_percent,
-            2
-        )
-    );
-
-
-    updateMultipleIds(
-        [
-            "movement",
-            "avgMovement"
-        ],
-        formatValue(
-            record.movement,
-            2
-        )
-    );
-
-
-    const noise =
-        record.noise_index ??
-        record.microphone_adc ??
-        null;
-
-
-    updateMultipleIds(
-        [
-            "noise",
-            "avgNoise"
-        ],
-        formatValue(
-            noise,
-            2
-        )
-    );
-
-
-    setText(
-        "sleepDuration",
-        formatValue(
-            record.sleep_duration_hours,
-            2
-        )
-    );
-
-
-    setText(
-        "sleepQuality",
-        "Waiting..."
-    );
-
-
-    setText(
-        "confidence",
-        "--"
-    );
-}
-
-
-// ======================================================
-// GET SUMMARY VALUE
-// ======================================================
-
-function getSummaryValue(
-    summary,
-    fields
-) {
-
-    for (
-        const field of fields
-    ) {
-
-        if (
-            summary[field] !==
-            undefined &&
-            summary[field] !==
-            null &&
-            summary[field] !== ""
-        ) {
-
-            const value =
-                Number(
-                    summary[field]
+            // ==================================================
+            // CALCULATE VALUES
+            // ==================================================
+
+            const heartRate =
+                average(
+                    records,
+                    [
+                        "heart_rate",
+                        "Heart_Rate"
+                    ]
                 );
 
 
-            if (
-                Number.isFinite(value)
-            ) {
-
-                return value;
-            }
-        }
-    }
-
-
-    return null;
-}
+            const spo2 =
+                average(
+                    records,
+                    [
+                        "spo2",
+                        "SpO2"
+                    ]
+                );
 
 
-// ======================================================
-// NORMALIZE CONFIDENCE
-// ======================================================
-
-function normalizeConfidence(
-    value
-) {
-
-    if (
-        value === undefined ||
-        value === null ||
-        value === ""
-    ) {
-
-        return null;
-    }
+            const temperature =
+                average(
+                    records,
+                    [
+                        "temperature_c",
+                        "Temperature_C",
+                        "temperature"
+                    ]
+                );
 
 
-    let number =
-        Number(value);
+            const humidity =
+                average(
+                    records,
+                    [
+                        "humidity_percent",
+                        "Humidity_pct",
+                        "Humidity",
+                        "humidity"
+                    ]
+                );
 
 
-    if (
-        !Number.isFinite(number)
-    ) {
-
-        return null;
-    }
-
-
-    if (
-        number >= 0 &&
-        number <= 1
-    ) {
-
-        number =
-            number * 100;
-    }
+            const movement =
+                average(
+                    records,
+                    [
+                        "movement",
+                        "Movement"
+                    ]
+                );
 
 
-    return number;
-}
+            const noise =
+                average(
+                    records,
+                    [
+                        "noise_index",
+                        "Noise_dB",
+                        "Noise",
+                        "microphone_adc"
+                    ]
+                );
 
 
-// ======================================================
-// FORMAT VALUE
-// ======================================================
-
-function formatValue(
-    value,
-    decimals
-) {
-
-    if (
-        value === undefined ||
-        value === null ||
-        value === ""
-    ) {
-
-        return "--";
-    }
+            const duration =
+                maximum(
+                    records,
+                    [
+                        "sleep_duration_hours",
+                        "Sleep_Duration_Hours",
+                        "Sleep_Duration_hr"
+                    ]
+                );
 
 
-    const number =
-        Number(value);
-
-
-    if (
-        !Number.isFinite(number)
-    ) {
-
-        return "--";
-    }
-
-
-    return number.toFixed(
-        decimals
-    );
-}
-
-
-// ======================================================
-// VALID RECORD
-// ======================================================
-
-function isValidRecord(
-    record
-) {
-
-    if (!record) {
-        return false;
-    }
-
-
-    return (
-        Number(record.heart_rate || 0) > 0 &&
-        Number(record.spo2 || 0) > 0 &&
-        Number(record.temperature_c || 0) > 0 &&
-        Number(record.humidity_percent || 0) > 0
-    );
-}
-
-
-// ======================================================
-// UPDATE MULTIPLE IDs
-// ======================================================
-
-function updateMultipleIds(
-    ids,
-    value
-) {
-
-    ids.forEach(
-        (id) => {
+            // ==================================================
+            // DISPLAY RAW VALUES
+            // ==================================================
 
             setText(
-                id,
-                value
+                "hrAvg",
+                heartRate > 0
+                    ? heartRate.toFixed(1)
+                    : "--"
             );
+
+
+            setText(
+                "spo2Avg",
+                spo2 > 0
+                    ? spo2.toFixed(1)
+                    : "--"
+            );
+
+
+            setText(
+                "tempAvg",
+                temperature !== 0
+                    ? temperature.toFixed(1)
+                    : "--"
+            );
+
+
+            setText(
+                "humidityAvg",
+                humidity !== 0
+                    ? humidity.toFixed(1)
+                    : "--"
+            );
+
+
+            setText(
+                "movementAvg",
+                movement.toFixed(2)
+            );
+
+
+            setText(
+                "noiseAvg",
+                noise.toFixed(0)
+            );
+
+
+            setText(
+                "duration",
+                duration > 0
+                    ? duration.toFixed(2)
+                    : "--"
+            );
+
+
+            setText(
+                "quality",
+                "Waiting..."
+            );
+
+
+            setText(
+                "confidence",
+                "--"
+            );
+
+
+            setText(
+                "analysisDate",
+                "--"
+            );
+
+
+            setText(
+                "qualityNote",
+                "Sensor data loaded. Waiting for the saved AI prediction."
+            );
+
+
+            // ==================================================
+            // PROGRESS BARS
+            // ==================================================
+
+            const hrProgress =
+                document.getElementById(
+                    "hrProgress"
+                );
+
+
+            if (hrProgress) {
+
+                hrProgress.style.width =
+                    Math.min(
+                        100,
+                        Math.max(
+                            0,
+                            heartRate / 1.4
+                        )
+                    ) + "%";
+
+            }
+
+
+            const spo2Progress =
+                document.getElementById(
+                    "spo2Progress"
+                );
+
+
+            if (spo2Progress) {
+
+                spo2Progress.style.width =
+                    Math.min(
+                        100,
+                        Math.max(
+                            0,
+                            spo2
+                        )
+                    ) + "%";
+
+            }
+
+
+            const durationProgress =
+                document.getElementById(
+                    "durationProgress"
+                );
+
+
+            if (durationProgress) {
+
+                durationProgress.style.width =
+                    Math.min(
+                        100,
+                        Math.max(
+                            0,
+                            (duration / 8) * 100
+                        )
+                    ) + "%";
+
+            }
+
+
+            setText(
+                "hrBadge",
+                heartRate > 0
+                    ? "Average"
+                    : "--"
+            );
+
+
+            setText(
+                "spo2Badge",
+                spo2 > 0
+                    ? "Average"
+                    : "--"
+            );
+
+
+            displayRecommendations(
+                duration,
+                noise,
+                movement,
+                humidity
+            );
+
+        },
+
+        error => {
+
+            console.error(
+                "Firebase sleep_data error:"
+            );
+
+            console.error(
+                error
+            );
+
         }
+
     );
+
 }
 
 
-// ======================================================
-// SET TEXT
-// ======================================================
-
-function setText(
-    id,
-    value
-) {
-
-    const element =
-        document.getElementById(
-            id
-        );
-
-
-    if (element) {
-
-        element.textContent =
-            value;
-    }
-}
-
-
-// ======================================================
-// GENERATE ANALYSIS
-// ======================================================
-
-function generateAnalysis(
-    quality
-) {
-
-    if (
-        quality ===
-        "Excellent"
-    ) {
-
-        setText(
-            "analysisText",
-            "The AI model classified the monitored sleep session as Excellent. The aggregated sensor values indicate a favorable sleep pattern."
-        );
-
-    }
-
-    else if (
-        quality ===
-        "Good"
-    ) {
-
-        setText(
-            "analysisText",
-            "The AI model classified the monitored sleep session as Good. The overall monitored conditions appear relatively favorable."
-        );
-
-    }
-
-    else if (
-        quality ===
-        "Fair"
-    ) {
-
-        setText(
-            "analysisText",
-            "The AI model classified the monitored sleep session as Fair. Some monitored factors may be affecting the overall sleep quality."
-        );
-
-    }
-
-    else if (
-        quality ===
-        "Poor"
-    ) {
-
-        setText(
-            "analysisText",
-            "The AI model classified the monitored sleep session as Poor. Environmental conditions or other monitored factors may be contributing to lower sleep quality."
-        );
-
-    }
-
-    else if (
-        quality ===
-        "Very Poor"
-    ) {
-
-        setText(
-            "analysisText",
-            "The AI model classified the monitored sleep session as Very Poor. Several monitored factors may require attention."
-        );
-
-    }
-
-    else {
-
-        setText(
-            "analysisText",
-            "Waiting for the daily AI sleep analysis."
-        );
-    }
-}
-
-
-// ======================================================
+// ============================================================
 // RECOMMENDATIONS
-// ======================================================
+// ============================================================
 
-function updateRecommendations(
-    quality
+function displayRecommendations(
+    duration,
+    noise,
+    movement,
+    humidity
 ) {
 
-    const element =
+    const box =
         document.getElementById(
             "recommendations"
         );
 
 
-    if (!element) {
+    if (!box) {
         return;
     }
 
 
-    element.innerHTML =
-        "";
+    const recommendations = [];
 
 
-    let recommendations =
-        [];
-
+    // --------------------------------------------------------
+    // SLEEP DURATION
+    // --------------------------------------------------------
 
     if (
-        quality ===
-        "Excellent"
+        duration > 0 &&
+        duration < 7
     ) {
 
-        recommendations = [
-
-            "Maintain your current sleep routine.",
-
-            "Keep a comfortable sleeping environment.",
-
-            "Maintain a consistent bedtime and wake-up time."
-        ];
-    }
-
-
-    else if (
-        quality ===
-        "Good"
-    ) {
-
-        recommendations = [
-
-            "Maintain a regular sleep schedule.",
-
-            "Keep the sleeping environment comfortable.",
-
-            "Continue monitoring your sleep pattern."
-        ];
-    }
-
-
-    else if (
-        quality ===
-        "Fair"
-    ) {
-
-        recommendations = [
-
-            "Try maintaining a regular sleep schedule.",
-
-            "Reduce unnecessary noise and disturbances.",
-
-            "Keep the sleeping environment comfortable."
-        ];
-    }
-
-
-    else if (
-        quality ===
-        "Poor"
-    ) {
-
-        recommendations = [
-
-            "Try maintaining a consistent sleep schedule.",
-
-            "Reduce environmental noise and disturbances.",
-
-            "Review sleep duration and sleeping conditions."
-        ];
-    }
-
-
-    else if (
-        quality ===
-        "Very Poor"
-    ) {
-
-        recommendations = [
-
-            "Review sleep duration and sleep schedule.",
-
-            "Reduce environmental noise and disturbances.",
-
-            "Maintain a comfortable sleeping environment.",
-
-            "Continue monitoring sleep patterns over multiple nights."
-        ];
-    }
-
-
-    else {
-
-        recommendations = [
-
-            "Continue collecting sleep sensor data.",
-
-            "Daily AI recommendations will appear after prediction."
-        ];
-    }
-
-
-    recommendations.forEach(
-        (text) => {
-
-            const li =
-                document.createElement(
-                    "li"
-                );
-
-
-            li.textContent =
-                text;
-
-
-            element.appendChild(
-                li
-            );
-        }
-    );
-}
-
-
-// ======================================================
-// NO DATA
-// ======================================================
-
-function showNoData() {
-
-    updateMultipleIds(
-        [
-            "heartRate",
-            "avgHeartRate",
-            "spo2",
-            "avgSpo2",
-            "temperature",
-            "avgTemperature",
-            "humidity",
-            "avgHumidity",
-            "movement",
-            "avgMovement",
-            "noise",
-            "avgNoise",
-            "sleepDuration"
-        ],
-        "--"
-    );
-
-
-    setText(
-        "sleepQuality",
-        "Waiting..."
-    );
-
-
-    setText(
-        "confidence",
-        "--"
-    );
-
-
-    setText(
-        "predictionStatus",
-        "No sleep data available"
-    );
-
-
-    setText(
-        "analysisText",
-        "Waiting for sleep data from the ESP32."
-    );
-
-
-    updateRecommendations(
-        "Not predicted"
-    );
-}
-
-
-// ======================================================
-// LOGOUT
-// ======================================================
-
-const logoutButton =
-    document.getElementById(
-        "logoutBtn"
-    );
-
-
-if (logoutButton) {
-
-    logoutButton.addEventListener(
-        "click",
-
-        async () => {
-
-            try {
-
-                await signOut(
-                    auth
-                );
-
-
-                window.location.href =
-                    "index.html";
-
+        recommendations.push(
+            {
+                icon: "◷",
+                title: "Review your sleep schedule",
+                text:
+                    "The recorded monitoring session is below 7 hours."
             }
+        );
 
-            catch (error) {
+    }
 
-                console.error(
-                    "Logout error:",
-                    error
-                );
+
+    // --------------------------------------------------------
+    // NOISE
+    // --------------------------------------------------------
+
+    if (
+        noise >= 50
+    ) {
+
+        recommendations.push(
+            {
+                icon: "⌁",
+                title: "Reduce nighttime sound",
+                text:
+                    "The digital noise index shows sound detections during the session."
             }
-        }
-    );
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // MOVEMENT
+    // --------------------------------------------------------
+
+    if (
+        movement >= 1
+    ) {
+
+        recommendations.push(
+            {
+                icon: "↗",
+                title: "Keep the sleep environment stable",
+                text:
+                    "Higher movement was detected during the session."
+            }
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // HUMIDITY
+    // --------------------------------------------------------
+
+    if (
+        humidity >= 70
+    ) {
+
+        recommendations.push(
+            {
+                icon: "◌",
+                title: "Check room humidity",
+                text:
+                    "The measured room humidity is relatively high."
+            }
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // DEFAULT
+    // --------------------------------------------------------
+
+    if (
+        recommendations.length === 0
+    ) {
+
+        recommendations.push(
+            {
+                icon: "☾",
+                title: "Maintain your routine",
+                text:
+                    "The available session signals do not trigger a specific demo recommendation."
+            }
+        );
+
+    }
+
+
+    // ========================================================
+    // CREATE HTML
+    // ========================================================
+
+    box.innerHTML =
+        recommendations
+            .map(
+                item => {
+
+                    return `
+                        <div class="recommendation">
+
+                            <div class="rec-icon">
+                                ${item.icon}
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    ${item.title}
+                                </strong>
+
+                                <p
+                                    class="muted"
+                                    style="font-size:13px"
+                                >
+                                    ${item.text}
+                                </p>
+
+                            </div>
+
+                        </div>
+                    `;
+
+                }
+            )
+            .join("");
+
 }
 
 
-// ======================================================
-// PAGE LOAD
-// ======================================================
+// ============================================================
+// PAGE LOADED MESSAGE
+// ============================================================
 
 console.log(
     "Sleep Analysis JavaScript loaded successfully."
+);
+
+console.log(
+    "Firebase will load the user's daily AI summary."
 );

@@ -1,78 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>AI Sleep Monitor - Register</title>
-
-    <link rel="stylesheet" href="css/style.css">
-</head>
-
-<body>
-
-    <div class="login-container">
-
-        <div class="login-box">
-
-            <h1>Create Account</h1>
-
-            <p>AI Sleep Monitor</p>
-
-            <form id="registerForm">
-
-                <label>Email</label>
-
-                <input
-                    type="email"
-                    id="email"
-                    placeholder="Enter your email"
-                    required
-                >
-
-                <label>Password</label>
-
-                <input
-                    type="password"
-                    id="password"
-                    placeholder="Create a password"
-                    minlength="6"
-                    required
-                >
-
-                <label>Confirm Password</label>
-
-                <input
-                    type="password"
-                    id="confirmPassword"
-                    placeholder="Confirm your password"
-                    minlength="6"
-                    required
-                >
-
-                <button type="submit">
-                    Create Account
-                </button>
-
-            </form>
-
-            <p id="message"></p>
-
-            <div class="register-link">
-
-                Already have an account?
-
-                <a href="index.html">
-                    Login
-                </a>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <script type="module" src="js/register.js"></script>
-
-</body>
-</html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Register | SleepCare AI</title><link rel="stylesheet" href="css/style.css">
+</head><body>
+<div class="auth-page">
+<section class="auth-visual">
+<div><div class="eyebrow" style="color:#9fe2ca">START YOUR SLEEP JOURNEY</div>
+<h1>Your night. Your data. Your insights.</h1>
+<p>Create your account and connect your personal sleep-monitoring data to a secure Firebase user space.</p>
+<div class="hero-tags"><span class="hero-tag">Firebase Authentication</span><span class="hero-tag">Real-time Database</span><span class="hero-tag">AI Prediction</span></div>
+</div></section>
+<section class="auth-form-wrap"><div class="auth-box">
+<a class="brand" href="index.html"><span class="brand-mark">☾</span><span>SleepCare AI</span></a>
+<h2>Create account</h2><p class="sub">Register to access your personalized monitoring pages.</p>
+<div id="message" class="message"></div>
+<form id="registerForm">
+<div class="form-group"><label>Full name</label><input id="name" required placeholder="Your name"></div>
+<div class="form-group"><label>Email</label><input id="email" type="email" required placeholder="you@example.com"></div>
+<div class="form-grid">
+<div class="form-group"><label>Password</label><input id="password" type="password" minlength="6" required placeholder="Minimum 6 characters"></div>
+<div class="form-group"><label>Confirm password</label><input id="confirmPassword" type="password" minlength="6" required placeholder="Repeat password"></div>
+</div>
+<button class="btn btn-primary" style="width:100%">Create my account</button>
+</form>
+<div class="auth-links">Already registered? <a href="index.html">Sign in</a></div>
+</div></section></div>
+<script type="module" src="js/register.js"></script>
+</body></html>
