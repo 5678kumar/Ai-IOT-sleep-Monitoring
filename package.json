@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
      "start": "node server/server.js",
-      "dev": "nodemon server/server.js"
+      "dev": "nodemon server/server.js",
+      "ml": "cd ML && python ml_api.py",
+      "start:all": "concurrently \"npm run ml\" \"npm start\""
   },
   "keywords": [],
   "author": "",
@@ -17,6 +19,7 @@
     "firebase-admin": "^14.3.0"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "nodemon": "^3.1.14"
   }
 }
