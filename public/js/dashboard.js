@@ -33,7 +33,10 @@ async function requestDailyPrediction(user, sessionRecords) {
     setText("sleepQuality",result.sleep_quality||"Unknown");
     setText("confidence",confidenceText(result.confidence));
     setText("predictionStatus",`${result.records_used||sessionRecords.length} records aggregated for this session`);
-    const dateKey = last.date_key || new Date().toISOString().slice(0,10);
+    const sourceDateKey = String(last.date_key || "").trim();
+    const dateKey = sourceDateKey && !/^unknown(?:_date)?$/i.test(sourceDateKey)
+      ? sourceDateKey
+      : new Date().toISOString().slice(0,10);
     await set(dbRef(getDatabase(),`users/${user.uid}/daily_summaries/${dateKey}`),{
       ...result,
       date_key:dateKey,

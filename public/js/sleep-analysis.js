@@ -647,6 +647,9 @@ function displaySummary(summary) {
         return;
     }
 
+    const sensorSummary =
+        summary.daily_summary || summary;
+
 
     console.log(
         "Displaying AI summary:"
@@ -663,7 +666,7 @@ function displaySummary(summary) {
 
     const heartRate =
         getNumber(
-            summary,
+            sensorSummary,
             [
                 "average_heart_rate",
                 "avg_heart_rate",
@@ -679,7 +682,7 @@ function displaySummary(summary) {
 
     const spo2 =
         getNumber(
-            summary,
+            sensorSummary,
             [
                 "average_spo2",
                 "avg_spo2",
@@ -695,7 +698,7 @@ function displaySummary(summary) {
 
     const temperature =
         getNumber(
-            summary,
+            sensorSummary,
             [
                 "average_temperature",
                 "avg_temperature",
@@ -713,7 +716,7 @@ function displaySummary(summary) {
 
     const humidity =
         getNumber(
-            summary,
+            sensorSummary,
             [
                 "average_humidity",
                 "avg_humidity",
@@ -731,7 +734,7 @@ function displaySummary(summary) {
 
     const movement =
         getNumber(
-            summary,
+            sensorSummary,
             [
                 "average_movement",
                 "avg_movement",
@@ -747,7 +750,7 @@ function displaySummary(summary) {
 
     const noise =
         getNumber(
-            summary,
+            sensorSummary,
             [
                 "average_noise",
                 "avg_noise",
@@ -765,7 +768,7 @@ function displaySummary(summary) {
 
     const duration =
         getNumber(
-            summary,
+            sensorSummary,
             [
                 "sleep_duration_hours",
                 "average_sleep_duration_hours",
@@ -804,10 +807,16 @@ function displaySummary(summary) {
     // DATE
     // ========================================================
 
+    const savedDate = [
+        summary.date_key,
+        summary.date
+    ].find(value =>
+        value && !/^unknown(?:_date)?$/i.test(String(value))
+    );
+
     const date =
-        summary.date_key ||
-        summary.date ||
-        "--";
+        savedDate ||
+        new Date().toLocaleDateString("en-GB");
 
 
     // ========================================================

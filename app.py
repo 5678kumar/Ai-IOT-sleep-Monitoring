@@ -49,9 +49,8 @@ def main():
         print("Starting ML API and loading the model...")
         wait_for_service(ml_process, "127.0.0.1", 5000)
 
-        npm_command = "npm.cmd" if os.name == "nt" else "npm"
         node_process = start_process(
-            [npm_command, "start"],
+            ["node", os.path.join("server", "server.js")],
             ROOT_DIR
         )
 
